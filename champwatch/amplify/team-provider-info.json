@@ -1,0 +1,23 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-champwatchdev-dev-19360-authRole",
+      "UnauthRoleArn": "arn:aws:iam::637423352471:role/amplify-champwatchdev-dev-19360-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::637423352471:role/amplify-champwatchdev-dev-19360-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-champwatchdev-dev-19360-deployment",
+      "UnauthRoleName": "amplify-champwatchdev-dev-19360-unauthRole",
+      "StackName": "amplify-champwatchdev-dev-19360",
+      "StackId": "arn:aws:cloudformation:us-east-1:637423352471:stack/amplify-champwatchdev-dev-19360/65f5ddb0-235c-11ef-ab3e-1256992ddab3",
+      "AmplifyAppId": "d2ihehta6xbytk"
+    },
+    "categories": {
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d2ihehta6xbytk",
+          "type": "cicd"
+        }
+      }
+    }
+  }
+}
