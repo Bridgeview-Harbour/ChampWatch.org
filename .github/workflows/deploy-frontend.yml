@@ -1,0 +1,159 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: 'dev'
+
+env:
+  AWS_REGION: us-east-1
+  NODE_VERSION: '18'
+
+jobs:
+  test:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run linter
+        working-directory: frontend
+        run: npm run lint --if-present
+
+      - name: Run tests
+        working-directory: frontend
+        run: npm test -- --coverage --watchAll=false
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          directory: frontend/coverage
+          fail_ci_if_error: false
+
+  build-and-deploy:
+    name: Build and Deploy Frontend
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Determine environment
+        id: determine-env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build application
+        working-directory: frontend
+        env:
+          REACT_APP_WEATHERLINK_API_KEY: ${{ secrets.REACT_APP_WEATHERLINK_API_KEY }}
+          REACT_APP_WEATHERLINK_API_SECRET: ${{ secrets.REACT_APP_WEATHERLINK_API_SECRET }}
+          REACT_APP_WEATHERLINK_STATION_ID: ${{ secrets.REACT_APP_WEATHERLINK_STATION_ID }}
+          CI: false
+        run: npm run build
+
+      - name: Get S3 bucket name
+        id: get-bucket
+        run: |
+          BUCKET_NAME="champwatch-${{ steps.determine-env.outputs.environment }}-website"
+          echo "bucket_name=${BUCKET_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Deploy to S3
+        working-directory: frontend/build
+        run: |
+          aws s3 sync . s3://${{ steps.get-bucket.outputs.bucket_name }} \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "index.html" \
+            --exclude "*.html"
+
+          # Upload HTML files with shorter cache
+          aws s3 sync . s3://${{ steps.get-bucket.outputs.bucket_name }} \
+            --exclude "*" \
+            --include "*.html" \
+            --cache-control "public, max-age=300, must-revalidate"
+
+      - name: Get CloudFront distribution ID
+        id: get-distribution
+        run: |
+          DIST_ID=$(aws cloudfront list-distributions \
+            --query "DistributionList.Items[?Comment=='ChampWatch.org ${{ steps.determine-env.outputs.environment }}'].Id | [0]" \
+            --output text)
+          echo "distribution_id=${DIST_ID}" >> $GITHUB_OUTPUT
+
+      - name: Invalidate CloudFront cache
+        if: steps.get-distribution.outputs.distribution_id != 'None'
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ steps.get-distribution.outputs.distribution_id }} \
+            --paths "/*"
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ steps.determine-env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **S3 Bucket**: ${{ steps.get-bucket.outputs.bucket_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **CloudFront Distribution**: ${{ steps.get-distribution.outputs.distribution_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
