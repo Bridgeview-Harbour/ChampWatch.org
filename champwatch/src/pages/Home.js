@@ -1,5 +1,6 @@
 import React from 'react';
 import { Container, Row, Col, Card, Button, Alert } from 'react-bootstrap';
+import WeatherWidget from '../components/WeatherWidget';
 
 function Home() {
   return (
@@ -75,28 +76,7 @@ function Home() {
 
           {/* Weather Widget */}
           <Col lg={4} className="mt-4 mt-lg-0">
-            <Card className="shadow mb-4">
-              <Card.Header className="bg-info text-white">
-                <h3 className="h5 mb-0">Lake Champlain Weather</h3>
-              </Card.Header>
-              <Card.Body>
-                <div className="text-center">
-                  <h4>Port Henry, NY</h4>
-                  <div className="my-3">
-                    {/* Placeholder for weather widget */}
-                    <div className="display-3">🌤️</div>
-                    <p className="h2 mb-0">--°F</p>
-                    <p className="text-muted">Weather data coming soon</p>
-                  </div>
-                  <hr />
-                  <div className="text-start small">
-                    <p className="mb-1"><strong>Wind:</strong> -- mph</p>
-                    <p className="mb-1"><strong>Humidity:</strong> --%</p>
-                    <p className="mb-1"><strong>Conditions:</strong> --</p>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
+            <WeatherWidget />
 
             {/* Call to Action */}
             <Card className="shadow bg-success text-white">
