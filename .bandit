@@ -1,0 +1,25 @@
+# Bandit configuration for Python security scanning
+# https://bandit.readthedocs.io/
+
+[bandit]
+# Paths to exclude from scanning
+exclude_dirs = [
+    '/tests',
+    '/.venv',
+    '/venv',
+    '/build',
+    '/dist',
+    '/.eggs',
+    'cdk.out'
+]
+
+# Test IDs to skip
+skips = []
+
+# Confidence level for reported issues (LOW, MEDIUM, HIGH)
+# Report issues with at least MEDIUM confidence
+confidence = MEDIUM
+
+# Severity level for reported issues (LOW, MEDIUM, HIGH)
+# Report issues with at least LOW severity
+level = LOW
