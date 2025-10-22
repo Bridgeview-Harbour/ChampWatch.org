@@ -4,6 +4,7 @@
 
 [![Deploy Infrastructure](https://github.com/Bridgeview-Harbour/ChampWatch.org/workflows/Deploy%20Infrastructure/badge.svg)](https://github.com/Bridgeview-Harbour/ChampWatch.org/actions)
 [![Deploy Frontend](https://github.com/Bridgeview-Harbour/ChampWatch.org/workflows/Deploy%20Frontend/badge.svg)](https://github.com/Bridgeview-Harbour/ChampWatch.org/actions)
+[![CI - Test and Security Scan](https://github.com/Bridgeview-Harbour/ChampWatch.org/workflows/CI%20-%20Test%20and%20Security%20Scan/badge.svg)](https://github.com/Bridgeview-Harbour/ChampWatch.org/actions)
 
 ## Overview
 
@@ -37,11 +38,18 @@ ChampWatch.org/
 │   ├── cdk.json          # CDK configuration
 │   └── requirements.txt  # Python dependencies
 │
-└── .github/
-    └── workflows/        # GitHub Actions CI/CD
-        ├── deploy-infrastructure.yml
-        ├── deploy-frontend.yml
-        └── pr-validation.yml
+├── .github/
+│   └── workflows/        # GitHub Actions CI/CD
+│       ├── deploy-infrastructure.yml
+│       ├── deploy-frontend.yml
+│       ├── pr-validation.yml
+│       └── ci-test-security.yml
+│
+├── scripts/              # Utility scripts
+│   ├── security-scan.sh  # Local security scanning
+│   └── run-tests.sh      # Local test runner
+│
+└── SECURITY.md          # Security policy and procedures
 ```
 
 ## Quick Start
@@ -250,12 +258,58 @@ Pull requests automatically trigger validation workflows.
 
 ## Security
 
+ChampWatch.org implements comprehensive security measures and automated scanning:
+
+### Infrastructure Security
 - S3 buckets are private (no public access)
 - CloudFront uses Origin Access Identity (OAI)
 - HTTPS enforced via CloudFront
-- S3 encryption enabled
-- Environment variables for secrets
-- Automated security scanning in PRs
+- S3 encryption enabled at rest
+- Environment variables for secrets (never committed)
+- IAM least privilege policies
+
+### Automated Security Scanning
+
+Every push and pull request triggers comprehensive security scans:
+
+#### Frontend Security
+- **npm audit** - Dependency vulnerability scanning
+- **Snyk** - Advanced vulnerability detection
+- **Trivy** - Multi-purpose security scanner
+- **TruffleHog** - Secret detection in code
+- **License compliance** - Checks for prohibited licenses
+
+#### Infrastructure Security
+- **Bandit** - Python security linter
+- **Safety** - Python dependency vulnerability scanner
+- **pip-audit** - Python package auditing
+- **Trivy** - Infrastructure code scanning
+- **CodeQL** - Semantic code analysis
+- **Flake8** - Code quality linting
+
+#### Additional Checks
+- Dependency review on PRs
+- Security advisories monitoring
+- SAST (Static Application Security Testing)
+- License compliance verification
+
+### Local Security Scanning
+
+Run security scans before committing:
+
+```bash
+# Comprehensive security scan
+./scripts/security-scan.sh
+
+# Run all tests
+./scripts/run-tests.sh
+```
+
+### Security Policy
+
+- **Report vulnerabilities**: security@bridgeviewharbour.com
+- **Full security policy**: See [SECURITY.md](SECURITY.md)
+- **Response time**: Within 48 hours
 
 ### Security Note: Weather API Credentials
 
